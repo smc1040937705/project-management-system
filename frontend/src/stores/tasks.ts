@@ -93,17 +93,35 @@ export const useTasksStore = defineStore('tasks', () => {
   }
 
   const addDependency = async (taskId: number, data: TaskDependencyCreate) => {
-    const response = await tasksApi.addDependency(taskId, data)
-    if (currentTask.value?.id === taskId) {
-      currentTask.value.dependencies.push(response.data)
+    loading.value = true
+    error.value = null
+    try {
+      const response = await tasksApi.addDependency(taskId, data)
+      if (currentTask.value?.id === taskId) {
+        currentTask.value.dependencies.push(response.data)
+      }
+      return response.data
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    return response.data
   }
 
   const removeDependency = async (taskId: number, dependencyId: number) => {
-    await tasksApi.removeDependency(taskId, dependencyId)
-    if (currentTask.value?.id === taskId) {
-      currentTask.value.dependencies = currentTask.value.dependencies.filter(d => d.id !== dependencyId)
+    loading.value = true
+    error.value = null
+    try {
+      await tasksApi.removeDependency(taskId, dependencyId)
+      if (currentTask.value?.id === taskId) {
+        currentTask.value.dependencies = currentTask.value.dependencies.filter(d => d.id !== dependencyId)
+      }
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
   }
 
