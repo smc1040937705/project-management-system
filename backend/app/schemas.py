@@ -233,7 +233,7 @@ class DocumentResponse(DocumentBase):
     file_size: int
     mime_type: str
     uploaded_by: int
-    uploader: UserResponse
+    uploaded_by_user: UserResponse
     version: int
     created_at: datetime
 
