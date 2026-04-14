@@ -8,13 +8,12 @@ export const documentsApi = {
   getDocument: (id: number) =>
     apiClient.get<Document>(`/documents/${id}`),
 
-  uploadDocument: (projectId: number, file: File, name?: string, description?: string) => {
+  uploadDocument: (data: DocumentCreate) => {
     const formData = new FormData()
-    formData.append('file', file)
-    formData.append('project_id', projectId.toString())
-    if (name) formData.append('name', name)
-    if (description) formData.append('description', description)
-    return apiClient.post<Document>(`/documents/upload?project_id=${projectId}`, formData, {
+    formData.append('file', data.file)
+    formData.append('project_id', data.project_id.toString())
+    if (data.description) formData.append('description', data.description)
+    return apiClient.post<Document>('/documents', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -22,5 +21,10 @@ export const documentsApi = {
   },
 
   deleteDocument: (id: number) =>
-    apiClient.delete(`/documents/${id}`)
+    apiClient.delete(`/documents/${id}`),
+
+  downloadDocument: (id: number) =>
+    apiClient.get<Blob>(`/documents/${id}/download`, {
+      responseType: 'blob'
+    })
 }

@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
 from app.database import get_db
@@ -26,12 +26,15 @@ async def list_time_entries(
     limit: int = Query(20, ge=1, le=100),
     task_id: Optional[int] = None,
     user_id: Optional[int] = None,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(TimeEntry)
+    query = db.query(TimeEntry).options(
+        joinedload(TimeEntry.user),
+        joinedload(TimeEntry.task)
+    )
     
     if current_user.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER]:
         query = query.filter(TimeEntry.user_id == current_user.id)
@@ -41,9 +44,13 @@ async def list_time_entries(
     if task_id:
         query = query.filter(TimeEntry.task_id == task_id)
     if start_date:
-        query = query.filter(TimeEntry.date >= start_date)
+        start_dt = parse_date(start_date)
+        if start_dt:
+            query = query.filter(TimeEntry.date >= start_dt)
     if end_date:
-        query = query.filter(TimeEntry.date <= end_date)
+        end_dt = parse_date(end_date)
+        if end_dt:
+            query = query.filter(TimeEntry.date <= end_dt)
     
     entries = query.order_by(TimeEntry.date.desc()).offset(skip).limit(limit).all()
     return entries
@@ -107,7 +114,10 @@ async def get_time_entry(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    entry = db.query(TimeEntry).filter(TimeEntry.id == entry_id).first()
+    entry = db.query(TimeEntry).options(
+        joinedload(TimeEntry.user),
+        joinedload(TimeEntry.task)
+    ).filter(TimeEntry.id == entry_id).first()
     
     if not entry:
         raise HTTPException(
@@ -163,6 +173,9 @@ async def create_time_entry(
     db.commit()
     db.refresh(new_entry)
     
+    new_entry.user = current_user
+    new_entry.task = task
+    
     return new_entry
 
 
@@ -173,7 +186,10 @@ async def update_time_entry(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    entry = db.query(TimeEntry).filter(TimeEntry.id == entry_id).first()
+    entry = db.query(TimeEntry).options(
+        joinedload(TimeEntry.user),
+        joinedload(TimeEntry.task)
+    ).filter(TimeEntry.id == entry_id).first()
     
     if not entry:
         raise HTTPException(

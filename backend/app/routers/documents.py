@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import os
 import uuid
 from datetime import datetime
@@ -29,7 +29,7 @@ async def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Document)
+    query = db.query(Document).options(joinedload(Document.uploaded_by_user))
     
     if current_user.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER]:
         user_project_ids = [p.id for p in current_user.projects] + [p.id for p in current_user.owned_projects]
@@ -43,6 +43,8 @@ async def list_documents(
         query = query.filter(Document.name.ilike(search_filter))
     
     documents = query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
+    for doc in documents:
+        doc.uploader = doc.uploaded_by_user
     return documents
 
 
@@ -52,7 +54,9 @@ async def get_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    document = db.query(Document).filter(Document.id == document_id).first()
+    document = db.query(Document).options(joinedload(Document.uploaded_by_user)).filter(Document.id == document_id).first()
+    if document:
+        document.uploader = document.uploaded_by_user
     
     if not document:
         raise HTTPException(
@@ -128,6 +132,7 @@ async def upload_document(
     db.add(new_document)
     db.commit()
     db.refresh(new_document)
+    new_document.uploader = current_user
     
     return new_document
 

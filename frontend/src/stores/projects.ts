@@ -93,19 +93,37 @@ export const useProjectsStore = defineStore('projects', () => {
   }
 
   const addMember = async (projectId: number, userId: number) => {
-    const response = await projectsApi.addMember(projectId, userId)
-    if (currentProject.value?.id === projectId) {
-      currentProject.value = response.data
+    loading.value = true
+    error.value = null
+    try {
+      const response = await projectsApi.addMember(projectId, userId)
+      if (currentProject.value?.id === projectId) {
+        currentProject.value = response.data
+      }
+      return response.data
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    return response.data
   }
 
   const removeMember = async (projectId: number, userId: number) => {
-    const response = await projectsApi.removeMember(projectId, userId)
-    if (currentProject.value?.id === projectId) {
-      currentProject.value = response.data
+    loading.value = true
+    error.value = null
+    try {
+      const response = await projectsApi.removeMember(projectId, userId)
+      if (currentProject.value?.id === projectId) {
+        currentProject.value = response.data
+      }
+      return response.data
+    } catch (err: any) {
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    return response.data
   }
 
   return {
