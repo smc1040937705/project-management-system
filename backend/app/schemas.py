@@ -225,7 +225,7 @@ class DocumentCreate(DocumentBase):
 
 
 class DocumentResponse(DocumentBase):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     
     id: int
     project_id: int
@@ -233,7 +233,7 @@ class DocumentResponse(DocumentBase):
     file_size: int
     mime_type: str
     uploaded_by: int
-    uploader: UserResponse
+    uploader: UserResponse = Field(validation_alias='uploaded_by_user')
     version: int
     created_at: datetime
 
